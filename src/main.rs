@@ -94,17 +94,21 @@ fn main() {
 
     let (vbuf, slice) = factory.create_vertex_buffer_with_slice(&vertex_data, index_data);
 
-    let texels = [
-        [0xff, 0xff, 0xff, 0x00],
-        [0xff, 0x00, 0x00, 0x00],
-        [0x00, 0xff, 0x00, 0x00],
-        [0x00, 0x00, 0xff, 0x00],
-    ];
+    let target = "https://i.imgur.com/40VzkBZ.jpg";
+    let mut buffer: Vec<u8> = vec![];
+    reqwest::get(target).unwrap().copy_to(&mut buffer).unwrap();
+
+    let image = ::image::load_from_memory(&buffer).unwrap().to_rgba();
+    let image_dimensions = image.dimensions();
     let (_, texture_view) = factory
-        .create_texture_immutable::<gfx::format::Rgba8>(
-            gfx::texture::Kind::D2(2, 2, gfx::texture::AaMode::Single),
+        .create_texture_immutable_u8::<gfx::format::Rgba8>(
+            gfx::texture::Kind::D2(
+                image_dimensions.0 as u16,
+                image_dimensions.1 as u16,
+                gfx::texture::AaMode::Single,
+            ),
             gfx::texture::Mipmap::Provided,
-            &[&texels],
+            &[&image],
         )
         .unwrap();
 

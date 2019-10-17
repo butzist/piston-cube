@@ -153,7 +153,7 @@ fn main() {
     };
 
     let mut projection = get_projection(&window);
-    let mut first_person = FirstPerson::new([0.5, 0.5, 4.0], FirstPersonSettings::keyboard_wasd());
+    let mut first_person = FirstPerson::new([0.0, 0.0, 4.0], FirstPersonSettings::keyboard_wasd());
 
     let mut data = pipe::Data {
         vbuf: vbuf.clone(),
@@ -161,7 +161,7 @@ fn main() {
         u_model: [[0.0; 4]; 4],
         u_model_norm: [[0.0; 3]; 3],
         u_camera: [0.0; 3],
-        u_light: [-1.0, -1.0, -1.0],
+        u_light: [0.0, 0.0, 2.0],
         t_color: (texture_view, factory.create_sampler(sinfo)),
         out_color: window.output_color.clone(),
         out_depth: window.output_stencil.clone(),
@@ -190,9 +190,16 @@ fn main() {
                 first_person.camera(args.ext_dt).orthogonal(),
                 projection,
             );
+            data.u_camera = first_person.position;
+
             data.u_model = model.into();
             data.u_model_norm = model_norm.into();
-            data.u_camera = first_person.position;
+
+            window.encoder.draw(&slice, &pso, &data);
+
+            data.u_model =
+                (cgmath::Matrix4::from_translation([3.0, 3.0, 0.0].into()) * model).into();
+            data.u_model_norm = model_norm.into();
 
             window.encoder.draw(&slice, &pso, &data);
         });

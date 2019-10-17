@@ -10,7 +10,8 @@ uniform vec3 u_light;
 const vec3 specular_color = vec3(1.0, 1.0, 1.0);
 
 void main() {
-    float diffuse = max(dot(normalize(v_Norm), normalize(u_light)), 0.0);
+    vec3 light_direction = u_light - v_Pos;
+    float diffuse = max(dot(normalize(v_Norm), normalize(light_direction)), 0.0);
 
     vec3 camera_dir = normalize(u_camera - v_Pos);
     vec3 half_direction = normalize(normalize(u_light) + camera_dir);
@@ -18,7 +19,7 @@ void main() {
     
     vec3 tex = vec3(texture(t_color, v_TexCoord));
     vec3 ambient_color = 0.2 * tex;
-    vec3 diffuse_color = tex;
+    vec3 diffuse_color = 0.8 * tex;
 
     o_Color = vec4(ambient_color + diffuse * diffuse_color + specular * specular_color, 1.0);
 }

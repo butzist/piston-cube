@@ -79,21 +79,34 @@ impl ModelData {
         );
 
         let glsl = opengl.to_glsl();
-        let pso = factory
-            .create_pipeline_simple(
-                Shaders::new()
-                    .set(GLSL::V1_50, include_str!("cube_150.glslv"))
-                    .get(glsl)
-                    .unwrap()
-                    .as_bytes(),
-                Shaders::new()
-                    .set(GLSL::V1_50, include_str!("cube_150.glslf"))
-                    .get(glsl)
-                    .unwrap()
-                    .as_bytes(),
-                pipe::new(),
-            )
-            .unwrap();
+
+        let pso = {
+            let program = factory
+                .link_program(
+                    Shaders::new()
+                        .set(GLSL::V1_50, include_str!("cube_150.glslv"))
+                        .get(glsl)
+                        .unwrap()
+                        .as_bytes(),
+                    Shaders::new()
+                        .set(GLSL::V1_50, include_str!("cube_150.glslf"))
+                        .get(glsl)
+                        .unwrap()
+                        .as_bytes(),
+                )
+                .unwrap();
+
+            let rasterizer = gfx::state::Rasterizer::new_fill().with_cull_back();
+            factory
+                .create_pipeline_from_program(
+                    &program,
+                    gfx::Primitive::TriangleList,
+                    rasterizer,
+                    pipe::new(),
+                )
+                .unwrap()
+        };
+
         ModelData {
             vertices: vbuf,
             indices: slice,

@@ -16,6 +16,7 @@ fn main() {
         .build()
         .unwrap();
     window.set_capture_cursor(true);
+    window.set_max_fps(60);
 
     let ref mut factory = window.factory.clone();
 

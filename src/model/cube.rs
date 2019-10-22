@@ -2,16 +2,17 @@ use super::Vertex;
 use camera_controllers::Camera;
 use cgmath::prelude::*;
 use piston_window::*;
+use std::sync::{Arc, Mutex};
 
 pub struct Cube {
-    model: super::ModelData,
+    model: super::ObjectData,
     start_time: std::time::SystemTime,
 }
 
 impl Cube {
     pub fn new(
+        pipeline: Arc<Mutex<crate::pipeline::ObjectPipeline>>,
         factory: &mut gfx_device_gl::Factory,
-        opengl: shader_version::opengl::OpenGL,
     ) -> Cube {
         let vertex_data = vec![
             //top (0, 0, 1)
@@ -62,7 +63,7 @@ impl Cube {
         let texture = ::image::load_from_memory(&buffer).unwrap();
 
         Cube {
-            model: super::ModelData::new(factory, opengl, &vertex_data, &index_data, &texture),
+            model: super::ObjectData::new(pipeline, factory, &vertex_data, &index_data, &texture),
             start_time: std::time::SystemTime::now(),
         }
     }

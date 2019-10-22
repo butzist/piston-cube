@@ -1,5 +1,10 @@
+mod pipeline;
+use pipeline::ObjectPipeline;
+
 mod model;
 use model::Drawable;
+
+use std::sync::{Arc, Mutex};
 
 //----------------------------------------
 
@@ -21,7 +26,8 @@ fn main() {
     let ref mut factory = window.factory.clone();
 
     let mut first_person = FirstPerson::new([0.0, 0.0, 4.0], FirstPersonSettings::keyboard_wasd());
-    let mut cube = model::Cube::new(factory, opengl);
+    let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
+    let mut cube = model::Cube::new(pipeline, factory);
 
     while let Some(e) = window.next() {
         first_person.event(&e);

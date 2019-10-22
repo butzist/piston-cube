@@ -59,7 +59,7 @@ impl ObjectPipeline {
         let vbuf = factory.create_vertex_buffer(&[]);
         let (_, texture) = factory
             .create_texture_immutable_u8::<gfx::format::Rgba8>(
-                gfx::texture::Kind::D2(0, 0, gfx::texture::AaMode::Single),
+                gfx::texture::Kind::D2(1, 1, gfx::texture::AaMode::Single),
                 gfx::texture::Mipmap::Provided,
                 &[&[]],
             )

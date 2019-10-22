@@ -84,6 +84,6 @@ impl ObjectPipeline {
             out_depth: window.output_stencil.clone(),
         };
 
-        ObjectPipeline { pso, data, sampler }
+        ObjectPipeline { pso, data }
     }
 }

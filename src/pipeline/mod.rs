@@ -10,7 +10,6 @@ pub type Vertex = vertex::Vertex;
 pub struct Pipeline<D: gfx::pso::PipelineData<gfx_device_gl::Resources>> {
     pso: gfx::pso::PipelineState<gfx_device_gl::Resources, D::Meta>,
     data: D,
-    sampler: gfx_core::handle::Sampler<gfx_device_gl::Resources>,
 }
 
 pub trait ModelData<'a, D: gfx::pso::PipelineData<gfx_device_gl::Resources>> {

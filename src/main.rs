@@ -4,6 +4,7 @@ use pipeline::ObjectPipeline;
 mod model;
 use model::Drawable;
 
+use foreach::ForEach;
 use std::sync::{Arc, Mutex};
 
 //----------------------------------------
@@ -25,21 +26,31 @@ fn main() {
 
     let ref mut factory = window.factory.clone();
 
-    let mut first_person = FirstPerson::new([0.0, 0.0, 4.0], FirstPersonSettings::keyboard_wasd());
+    let mut first_person = FirstPerson::new([0.0, 0.0, 0.0], FirstPersonSettings::keyboard_wasd());
     let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
     let mut scene = model::Scene::new(pipeline.clone(), factory);
-    let mut cube = model::Cube::new(pipeline.clone(), factory);
-    let mut cube2 = cube.clone_to([2.0, 1.0, -3.0]);
+
+    let cube_prototype = model::Cube::new(pipeline.clone(), factory);
+    let mut cubes: Vec<model::Cube> = (0..1000)
+        .map(|_| {
+            cube_prototype.clone_to([
+                (rand::random::<f32>() - 0.5) * 100.0,
+                (rand::random::<f32>() - 0.5) * 100.0,
+                (rand::random::<f32>() - 0.5) * 100.0,
+            ])
+        })
+        .collect();
+    drop(cube_prototype);
 
     while let Some(e) = window.next() {
         first_person.event(&e);
-        cube.update();
-        cube2.update();
+        cubes.iter_mut().foreach(|c, _| c.update());
 
         window.draw_3d(&e, |window| {
             let args = e.render_args().unwrap();
             let camera = first_person.camera(args.ext_dt);
             scene.update(window, &camera);
+            eprintln!("{:?}", camera.position);
 
             window
                 .encoder
@@ -47,8 +58,7 @@ fn main() {
             window.encoder.clear_depth(&window.output_stencil, 1.0);
 
             scene.draw(window);
-            cube.draw(window);
-            cube2.draw(window);
+            cubes.iter().foreach(|c, _| c.draw(window));
         });
     }
 }

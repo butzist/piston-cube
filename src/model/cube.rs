@@ -1,5 +1,4 @@
 use super::Vertex;
-use camera_controllers::Camera;
 use cgmath::prelude::*;
 use piston_window::*;
 use std::sync::{Arc, Mutex};
@@ -78,7 +77,7 @@ impl Cube {
 }
 
 impl super::Drawable for Cube {
-    fn draw(&self, window: &mut PistonWindow, camera: &Camera<f32>) {
-        self.model.draw(window, camera)
+    fn draw(&self, window: &mut PistonWindow) {
+        self.model.draw(window)
     }
 }

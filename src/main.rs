@@ -27,7 +27,8 @@ fn main() {
 
     let mut first_person = FirstPerson::new([0.0, 0.0, 4.0], FirstPersonSettings::keyboard_wasd());
     let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
-    let mut cube = model::Cube::new(pipeline, factory);
+    let mut scene = model::Scene::new(pipeline.clone(), factory);
+    let mut cube = model::Cube::new(pipeline.clone(), factory);
 
     while let Some(e) = window.next() {
         first_person.event(&e);
@@ -36,13 +37,15 @@ fn main() {
         window.draw_3d(&e, |window| {
             let args = e.render_args().unwrap();
             let camera = first_person.camera(args.ext_dt);
+            scene.update(window, &camera);
 
             window
                 .encoder
                 .clear(&window.output_color, [0.3, 0.3, 0.3, 1.0]);
             window.encoder.clear_depth(&window.output_stencil, 1.0);
 
-            cube.draw(window, &camera);
+            scene.draw(window);
+            cube.draw(window);
         });
     }
 }

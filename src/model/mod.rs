@@ -1,5 +1,4 @@
 use crate::pipeline::*;
-use camera_controllers::{model_view_projection, Camera, CameraPerspective};
 use cgmath::prelude::One;
 use cgmath::{Matrix3, Matrix4};
 use gfx;
@@ -9,6 +8,9 @@ use std::sync::{Arc, Mutex};
 
 mod cube;
 pub type Cube = cube::Cube;
+
+mod scene;
+pub type Scene = scene::Scene;
 
 #[derive(Clone)]
 struct ObjectData {
@@ -55,7 +57,7 @@ impl ObjectData {
 }
 
 pub trait Drawable {
-    fn draw(&self, window: &mut PistonWindow, camera: &Camera<f32>);
+    fn draw(&self, window: &mut PistonWindow);
 }
 
 impl<'a> ModelSlice<'a> for &'a ObjectData {
@@ -67,36 +69,14 @@ impl<'a> ModelSlice<'a> for &'a ObjectData {
 impl<'a> ModelData<'a, <ObjectPipeline as PipelineData>::Data> for &'a ObjectData {
     fn fill(&'a self, data: &mut <ObjectPipeline as PipelineData>::Data) {
         data.vbuf = self.vertices.clone();
-        data.u_model_view_proj = Matrix4::one().into();
         data.u_model = self.matrix.into();
         data.u_model_norm = self.matrix_normal.into();
-        data.u_camera = [0.0, 0.0, 4.0];
-        data.u_light = [2.0, 0.0, 2.0];
         data.t_color.0 = self.texture.clone();
     }
 }
 
 impl Drawable for ObjectData {
-    fn draw(&self, window: &mut PistonWindow, camera: &camera_controllers::Camera<f32>) {
-        let mvp = {
-            let get_projection = |w: &PistonWindow| {
-                let draw_size = w.window.draw_size();
-                CameraPerspective {
-                    fov: 90.0,
-                    near_clip: 0.1,
-                    far_clip: 1000.0,
-                    aspect_ratio: (draw_size.width as f32) / (draw_size.height as f32),
-                }
-                .projection()
-            };
-
-            model_view_projection(
-                cgmath::Matrix4::from_scale(1.0f32).into(),
-                camera.orthogonal(),
-                get_projection(window),
-            )
-        };
-
+    fn draw(&self, window: &mut PistonWindow) {
         self.pipeline.lock().unwrap().draw(window, &self);
     }
 }

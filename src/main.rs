@@ -4,6 +4,8 @@ use pipeline::ObjectPipeline;
 mod model;
 use model::Drawable;
 
+use cgmath::prelude::*;
+use cgmath::Vector3;
 use foreach::ForEach;
 use std::sync::{Arc, Mutex};
 
@@ -26,18 +28,25 @@ fn main() {
 
     let ref mut factory = window.factory.clone();
 
-    let mut first_person = FirstPerson::new([0.0, 0.0, 0.0], FirstPersonSettings::keyboard_wasd());
+    let mut first_person =
+        FirstPerson::new([0.0, -10.0, 0.0], FirstPersonSettings::keyboard_wasd());
     let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
     let mut scene = model::Scene::new(pipeline.clone(), factory);
 
     let cube_prototype = model::Cube::new(pipeline.clone(), factory);
-    let mut cubes: Vec<model::Cube> = (0..1000)
+    let mut cubes: Vec<model::Cube> = (0..10000)
         .map(|_| {
-            cube_prototype.clone_to([
-                (rand::random::<f32>() - 0.5) * 10.0,
-                (rand::random::<f32>() - 0.5) * 10.0,
-                (rand::random::<f32>() - 0.5) * 10.0,
-            ])
+            cube_prototype.clone_to(
+                [0.0, 0.0, 0.0],
+                Vector3::new(
+                    rand::random::<f32>() - 0.5,
+                    rand::random::<f32>() - 0.5,
+                    rand::random::<f32>() - 0.5,
+                )
+                .normalize()
+                    * rand::random::<f32>(),
+                rand::random::<f32>() * 2.0 * std::f32::consts::PI,
+            )
         })
         .collect();
     drop(cube_prototype);

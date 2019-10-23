@@ -1,6 +1,6 @@
 use super::Vertex;
 use cgmath::prelude::*;
-use cgmath::{Matrix3, Matrix4};
+use cgmath::{Matrix3, Matrix4, Vector3};
 use piston_window::*;
 use std::sync::{Arc, Mutex};
 
@@ -8,7 +8,9 @@ use std::sync::{Arc, Mutex};
 pub struct Cube {
     model: super::ObjectData,
     start_time: std::time::SystemTime,
-    position: [f32; 3],
+    position: Vector3<f32>,
+    velocity: Vector3<f32>,
+    time_offset: f32,
 }
 
 impl Cube {
@@ -67,22 +69,34 @@ impl Cube {
         Cube {
             model: super::ObjectData::new(pipeline, factory, &vertex_data, &index_data, &texture),
             start_time: std::time::SystemTime::now(),
-            position: [0.0, 0.0, 0.0],
+            position: Vector3::zero(),
+            velocity: Vector3::zero(),
+            time_offset: 0.0,
         }
     }
 
     pub fn update(&mut self) {
         let t = self.start_time.elapsed().unwrap().as_millis() as f32 / 1000.0;
-        let model_rotation = Matrix3::from_axis_angle([1.0f32, 0.3, 0.3].into(), cgmath::Rad(t));
-        self.model.matrix = Matrix4::from_translation(self.position.into())
+        let position = t * self.velocity + self.position;
+
+        let model_rotation =
+            Matrix3::from_axis_angle([1.0f32, 0.3, 0.3].into(), cgmath::Rad(t + self.time_offset));
+        self.model.matrix = Matrix4::from_translation(position)
             * Matrix4::from_scale(0.1)
             * Matrix4::from(model_rotation);
         self.model.matrix_normal = model_rotation.invert().unwrap().transpose();
     }
 
-    pub fn clone_to(&self, position: [f32; 3]) -> Cube {
+    pub fn clone_to<P: Into<Vector3<f32>>, V: Into<Vector3<f32>>>(
+        &self,
+        position: P,
+        velocity: V,
+        time_offset: f32,
+    ) -> Cube {
         let mut new_cube = self.clone();
-        new_cube.position = position;
+        new_cube.position = position.into();
+        new_cube.velocity = velocity.into();
+        new_cube.time_offset = time_offset;
         new_cube
     }
 }

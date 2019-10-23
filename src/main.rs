@@ -29,10 +29,12 @@ fn main() {
     let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
     let mut scene = model::Scene::new(pipeline.clone(), factory);
     let mut cube = model::Cube::new(pipeline.clone(), factory);
+    let mut cube2 = cube.clone_to([2.0, 1.0, -3.0]);
 
     while let Some(e) = window.next() {
         first_person.event(&e);
         cube.update();
+        cube2.update();
 
         window.draw_3d(&e, |window| {
             let args = e.render_args().unwrap();
@@ -46,6 +48,7 @@ fn main() {
 
             scene.draw(window);
             cube.draw(window);
+            cube2.draw(window);
         });
     }
 }

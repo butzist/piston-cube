@@ -3,9 +3,11 @@ use cgmath::prelude::*;
 use piston_window::*;
 use std::sync::{Arc, Mutex};
 
+#[derive(Clone)]
 pub struct Cube {
     model: super::ObjectData,
     start_time: std::time::SystemTime,
+    position: [f32; 3],
 }
 
 impl Cube {
@@ -64,6 +66,7 @@ impl Cube {
         Cube {
             model: super::ObjectData::new(pipeline, factory, &vertex_data, &index_data, &texture),
             start_time: std::time::SystemTime::now(),
+            position: [0.0, 0.0, 0.0],
         }
     }
 
@@ -71,8 +74,15 @@ impl Cube {
         let t = self.start_time.elapsed().unwrap().as_millis() as f32 / 1000.0;
         let model_rotation =
             cgmath::Matrix3::from_axis_angle([1.0f32, 0.3, 0.3].into(), cgmath::Rad(t));
-        self.model.matrix = cgmath::Matrix4::from(model_rotation);
+        self.model.matrix = cgmath::Matrix4::from_translation(self.position.into())
+            * cgmath::Matrix4::from(model_rotation);
         self.model.matrix_normal = model_rotation.invert().unwrap().transpose();
+    }
+
+    pub fn clone_to(&self, position: [f32; 3]) -> Cube {
+        let mut new_cube = self.clone();
+        new_cube.position = position;
+        new_cube
     }
 }
 

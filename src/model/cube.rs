@@ -1,5 +1,6 @@
 use super::Vertex;
 use cgmath::prelude::*;
+use cgmath::{Matrix3, Matrix4};
 use piston_window::*;
 use std::sync::{Arc, Mutex};
 
@@ -72,10 +73,10 @@ impl Cube {
 
     pub fn update(&mut self) {
         let t = self.start_time.elapsed().unwrap().as_millis() as f32 / 1000.0;
-        let model_rotation =
-            cgmath::Matrix3::from_axis_angle([1.0f32, 0.3, 0.3].into(), cgmath::Rad(t));
-        self.model.matrix = cgmath::Matrix4::from_translation(self.position.into())
-            * cgmath::Matrix4::from(model_rotation);
+        let model_rotation = Matrix3::from_axis_angle([1.0f32, 0.3, 0.3].into(), cgmath::Rad(t));
+        self.model.matrix = Matrix4::from_translation(self.position.into())
+            * Matrix4::from_scale(0.1)
+            * Matrix4::from(model_rotation);
         self.model.matrix_normal = model_rotation.invert().unwrap().transpose();
     }
 

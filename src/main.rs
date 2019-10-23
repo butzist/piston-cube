@@ -34,9 +34,9 @@ fn main() {
     let mut cubes: Vec<model::Cube> = (0..1000)
         .map(|_| {
             cube_prototype.clone_to([
-                (rand::random::<f32>() - 0.5) * 100.0,
-                (rand::random::<f32>() - 0.5) * 100.0,
-                (rand::random::<f32>() - 0.5) * 100.0,
+                (rand::random::<f32>() - 0.5) * 10.0,
+                (rand::random::<f32>() - 0.5) * 10.0,
+                (rand::random::<f32>() - 0.5) * 10.0,
             ])
         })
         .collect();
@@ -50,7 +50,6 @@ fn main() {
             let args = e.render_args().unwrap();
             let camera = first_person.camera(args.ext_dt);
             scene.update(window, &camera);
-            eprintln!("{:?}", camera.position);
 
             window
                 .encoder

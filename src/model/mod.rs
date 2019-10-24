@@ -9,6 +9,9 @@ use std::sync::{Arc, Mutex};
 mod cube;
 pub type Cube = cube::Cube;
 
+mod mario;
+pub type Mario = mario::Mario;
+
 mod scene;
 pub type Scene = scene::Scene;
 
@@ -31,19 +34,7 @@ impl ObjectData {
         texture: &::image::DynamicImage,
     ) -> ObjectData {
         let (vbuf, slice) = factory.create_vertex_buffer_with_slice(vertices, indices);
-        let rgba = texture.to_rgba();
-        let image_dimensions = rgba.dimensions();
-        let (_, texture) = factory
-            .create_texture_immutable_u8::<gfx::format::Rgba8>(
-                gfx::texture::Kind::D2(
-                    image_dimensions.0 as u16,
-                    image_dimensions.1 as u16,
-                    gfx::texture::AaMode::Single,
-                ),
-                gfx::texture::Mipmap::Provided,
-                &[&rgba],
-            )
-            .unwrap();
+        let texture = load_texture(factory, texture);
 
         ObjectData {
             pipeline,
@@ -53,6 +44,63 @@ impl ObjectData {
             matrix: Matrix4::one(),
             matrix_normal: Matrix3::one(),
         }
+    }
+
+    pub fn new_from_existing(
+        pipeline: Arc<Mutex<ObjectPipeline>>,
+        factory: &mut gfx_device_gl::Factory,
+        vertices: gfx_core::handle::Buffer<gfx_device_gl::Resources, Vertex>,
+        indices: &[u16],
+        texture: gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>,
+    ) -> ObjectData {
+        ObjectData {
+            pipeline,
+            vertices: vertices,
+            indices: load_indices(factory, indices),
+            texture: texture,
+            matrix: Matrix4::one(),
+            matrix_normal: Matrix3::one(),
+        }
+    }
+}
+
+pub fn load_texture(
+    factory: &mut gfx_device_gl::Factory,
+    texture: &::image::DynamicImage,
+) -> gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]> {
+    let rgba = texture.to_rgba();
+    let image_dimensions = rgba.dimensions();
+    let (_, texture) = factory
+        .create_texture_immutable_u8::<gfx::format::Rgba8>(
+            gfx::texture::Kind::D2(
+                image_dimensions.0 as u16,
+                image_dimensions.1 as u16,
+                gfx::texture::AaMode::Single,
+            ),
+            gfx::texture::Mipmap::Provided,
+            &[&rgba],
+        )
+        .unwrap();
+    texture
+}
+
+pub fn load_indices<B: gfx::IntoIndexBuffer<gfx_device_gl::Resources>>(
+    factory: &mut gfx_device_gl::Factory,
+    indices: B,
+) -> gfx::Slice<gfx_device_gl::Resources> {
+    let index_buffer = factory.create_index_buffer(indices);
+    let buffer_length = match index_buffer {
+        gfx::IndexBuffer::Auto => panic!(),
+        gfx::IndexBuffer::Index16(ref ib) => ib.len(),
+        gfx::IndexBuffer::Index32(ref ib) => ib.len(),
+    };
+
+    gfx::Slice {
+        start: 0,
+        end: buffer_length as u32,
+        base_vertex: 0,
+        instances: None,
+        buffer: index_buffer,
     }
 }
 

@@ -2,9 +2,12 @@ use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Vector3};
 use foreach::ForEach;
 use gfx::traits::*;
+use obj::{Mtl, Obj, SimplePolygon};
 use piston_window::*;
+use std::collections::{HashMap, HashSet};
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
+use zip::ZipArchive;
 
 #[derive(Clone)]
 pub struct Mario {
@@ -20,14 +23,13 @@ impl Mario {
         pipeline: Arc<Mutex<crate::pipeline::ObjectPipeline>>,
         factory: &mut gfx_device_gl::Factory,
     ) -> Mario {
+        use std::io::BufReader;
+
         let target = "https://www.models-resource.com/download/685/";
-        let mut model_file = reqwest::get(target).unwrap();
+        let model_file = BufReader::new(super::download_cached(target).unwrap());
+        let mut zip_archive = ZipArchive::new(model_file).unwrap();
 
-        let mut buffer = vec![];
-        std::io::copy(&mut model_file, &mut buffer).unwrap();
-        let mut zip_archive = zip::ZipArchive::new(std::io::Cursor::new(buffer)).unwrap();
-
-        let mut obj = ::obj::Obj::<obj::SimplePolygon>::load_buf(&mut std::io::BufReader::new(
+        let mut obj = Obj::<SimplePolygon>::load_buf(&mut BufReader::new(
             zip_archive.by_name("mariohead.obj").unwrap(),
         ))
         .unwrap();
@@ -108,22 +110,18 @@ impl Mario {
 }
 
 fn load_materials<R: BufRead + Seek>(
-    obj: &mut ::obj::Obj<obj::SimplePolygon>,
-    zip: &mut zip::ZipArchive<R>,
+    obj: &mut Obj<SimplePolygon>,
+    zip: &mut ZipArchive<R>,
     factory: &mut gfx_device_gl::Factory,
-) -> std::collections::HashMap<
-    String,
-    gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>,
-> {
+) -> HashMap<String, gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>> {
     use std::borrow::Cow;
-    use std::collections::{HashMap, HashSet};
     use std::io::BufReader;
 
     let mut materials = HashMap::new();
 
     for m in &obj.material_libs {
         let file = zip.by_name(m).unwrap();
-        let mtl = ::obj::Mtl::load(&mut BufReader::new(file));
+        let mtl = Mtl::load(&mut BufReader::new(file));
         for m in mtl.materials {
             materials.insert(m.name.clone(), Cow::from(m));
         }
@@ -161,7 +159,7 @@ fn load_materials<R: BufRead + Seek>(
 
 fn texture_from_zip<B: BufRead + Seek>(
     fname: &str,
-    zip: &mut zip::ZipArchive<B>,
+    zip: &mut ZipArchive<B>,
     factory: &mut gfx_device_gl::Factory,
 ) -> Result<
     gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>,

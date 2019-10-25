@@ -4,6 +4,7 @@ use cgmath::{Matrix3, Matrix4};
 use gfx;
 use gfx::traits::*;
 use piston_window::*;
+use std::fs::File;
 use std::sync::{Arc, Mutex};
 
 mod cube;
@@ -62,6 +63,24 @@ impl ObjectData {
             matrix_normal: Matrix3::one(),
         }
     }
+}
+
+pub fn download_cached(url: &str) -> Result<File, Box<dyn std::error::Error>> {
+    let hash: String = url.chars().filter(|c| c.is_alphanumeric()).collect();
+    let cache_dir = std::path::Path::new("./.cache/");
+
+    if !cache_dir.exists() {
+        std::fs::create_dir(cache_dir)?;
+    }
+
+    let cache_file = cache_dir.join(hash);
+    if !cache_file.exists() {
+        let mut file = File::create(&cache_file)?;
+        let mut result = reqwest::get(url)?;
+        std::io::copy(&mut result, &mut file)?;
+    }
+
+    Ok(File::open(&cache_file)?)
 }
 
 pub fn load_texture(

@@ -2,6 +2,7 @@ use super::Vertex;
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Vector3};
 use piston_window::*;
+use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -61,8 +62,11 @@ impl Cube {
         ];
 
         let target = "https://i.imgur.com/40VzkBZ.jpg";
+        let mut file = super::download_cached(target).unwrap();
+
         let mut buffer = vec![];
-        reqwest::get(target).unwrap().copy_to(&mut buffer).unwrap();
+        file.read_to_end(&mut buffer).unwrap();
+        drop(file);
 
         let texture = ::image::load_from_memory(&buffer).unwrap();
 

@@ -1,4 +1,3 @@
-use super::Vertex;
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Vector3};
 use foreach::ForEach;
@@ -24,18 +23,9 @@ impl Mario {
         let target = "https://www.models-resource.com/download/685/";
         let mut model_file = reqwest::get(target).unwrap();
 
-        let mut buffer: Vec<u8> = vec![];
+        let mut buffer = vec![];
         std::io::copy(&mut model_file, &mut buffer).unwrap();
         let mut zip_archive = zip::ZipArchive::new(std::io::Cursor::new(buffer)).unwrap();
-        eprintln!(
-            "{:?}",
-            (0..zip_archive.len())
-                .map(|i| {
-                    let file = zip_archive.by_index(i).unwrap();
-                    file.name().to_owned()
-                })
-                .collect::<Vec<String>>()
-        );
 
         let mut obj = ::obj::Obj::<obj::SimplePolygon>::load_buf(&mut std::io::BufReader::new(
             zip_archive.by_name("mariohead.obj").unwrap(),
@@ -44,7 +34,7 @@ impl Mario {
 
         let textures = load_materials(&mut obj, &mut zip_archive, factory);
 
-        let vertices: Vec<Vertex> = obj
+        let vertices: Vec<_> = obj
             .position
             .iter()
             .zip(obj.texture.iter().zip(obj.normal.iter()))
@@ -55,7 +45,7 @@ impl Mario {
 
         let vbuf = factory.create_vertex_buffer(&vertices);
 
-        let groups: Vec<super::ObjectData> = obj.objects[0]
+        let groups: Vec<_> = obj.objects[0]
             .groups
             .iter()
             .map(|g| {
@@ -177,7 +167,7 @@ fn texture_from_zip<B: BufRead + Seek>(
     gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>,
     Box<dyn std::error::Error>,
 > {
-    let mut buffer: Vec<u8> = Default::default();
+    let mut buffer = vec![];
     zip.by_name(fname)?.read_to_end(&mut buffer)?;
     let image = ::image::load_from_memory(&buffer)?;
     let tbuf = super::load_texture(factory, &image);

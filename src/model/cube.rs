@@ -61,7 +61,7 @@ impl Cube {
         ];
 
         let target = "https://i.imgur.com/40VzkBZ.jpg";
-        let mut buffer: Vec<u8> = vec![];
+        let mut buffer = vec![];
         reqwest::get(target).unwrap().copy_to(&mut buffer).unwrap();
 
         let texture = ::image::load_from_memory(&buffer).unwrap();

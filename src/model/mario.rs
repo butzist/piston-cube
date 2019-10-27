@@ -57,7 +57,7 @@ impl Mario {
                     .flat_map(|p| p.iter().map(|t| t.0 as u16))
                     .collect();
                 let tex_name = g.material.as_ref().unwrap().map_kd.as_ref().unwrap();
-                super::ObjectData::new_from_existing(
+                super::ObjectData::new(
                     pipeline.clone(),
                     factory,
                     vbuf.clone(),
@@ -93,19 +93,6 @@ impl Mario {
             model.matrix = matrix;
             model.matrix_normal = matrix_normal;
         }
-    }
-
-    pub fn clone_to<P: Into<Vector3<f32>>, V: Into<Vector3<f32>>>(
-        &self,
-        position: P,
-        velocity: V,
-        time_offset: f32,
-    ) -> Mario {
-        let mut new = self.clone();
-        new.position = position.into();
-        new.velocity = velocity.into();
-        new.time_offset = time_offset;
-        new
     }
 }
 

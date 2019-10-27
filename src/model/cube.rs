@@ -1,6 +1,7 @@
 use super::Vertex;
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Vector3};
+use gfx::traits::*;
 use piston_window::*;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -69,9 +70,17 @@ impl Cube {
         drop(file);
 
         let texture = ::image::load_from_memory(&buffer).unwrap();
+        let texture_buffer = super::load_texture(factory, &texture);
+        let vertex_buffer = factory.create_vertex_buffer(&vertex_data);
 
         Cube {
-            model: super::ObjectData::new(pipeline, factory, &vertex_data, &index_data, &texture),
+            model: super::ObjectData::new(
+                pipeline,
+                factory,
+                vertex_buffer,
+                &index_data,
+                texture_buffer,
+            ),
             start_time: std::time::SystemTime::now(),
             position: Vector3::zero(),
             velocity: Vector3::zero(),
@@ -89,19 +98,6 @@ impl Cube {
             * Matrix4::from_scale(0.1)
             * Matrix4::from(model_rotation);
         self.model.matrix_normal = model_rotation.invert().unwrap().transpose();
-    }
-
-    pub fn clone_to<P: Into<Vector3<f32>>, V: Into<Vector3<f32>>>(
-        &self,
-        position: P,
-        velocity: V,
-        time_offset: f32,
-    ) -> Cube {
-        let mut new_cube = self.clone();
-        new_cube.position = position.into();
-        new_cube.velocity = velocity.into();
-        new_cube.time_offset = time_offset;
-        new_cube
     }
 }
 

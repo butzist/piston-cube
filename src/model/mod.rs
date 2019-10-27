@@ -27,27 +27,7 @@ struct ObjectData {
 }
 
 impl ObjectData {
-    fn new(
-        pipeline: Arc<Mutex<ObjectPipeline>>,
-        factory: &mut gfx_device_gl::Factory,
-        vertices: &Vec<Vertex>,
-        indices: &[u16],
-        texture: &::image::DynamicImage,
-    ) -> ObjectData {
-        let (vbuf, slice) = factory.create_vertex_buffer_with_slice(vertices, indices);
-        let texture = load_texture(factory, texture);
-
-        ObjectData {
-            pipeline,
-            vertices: vbuf,
-            indices: slice,
-            texture: texture,
-            matrix: Matrix4::one(),
-            matrix_normal: Matrix3::one(),
-        }
-    }
-
-    pub fn new_from_existing(
+    pub fn new(
         pipeline: Arc<Mutex<ObjectPipeline>>,
         factory: &mut gfx_device_gl::Factory,
         vertices: gfx_core::handle::Buffer<gfx_device_gl::Resources, Vertex>,

@@ -19,7 +19,7 @@ impl Cube {
     pub fn new(
         pipeline: Arc<Mutex<crate::pipeline::ObjectPipeline>>,
         factory: &mut gfx_device_gl::Factory,
-    ) -> Cube {
+    ) -> Result<Cube, Box<dyn std::error::Error>> {
         let vertex_data = vec![
             //top (0, 0, 1)
             Vertex::new([-1.0, -1.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0]),
@@ -63,17 +63,17 @@ impl Cube {
         ];
 
         let target = "https://i.imgur.com/40VzkBZ.jpg";
-        let mut file = super::download_cached(target).unwrap();
+        let mut file = super::download_cached(target)?;
 
         let mut buffer = vec![];
-        file.read_to_end(&mut buffer).unwrap();
+        file.read_to_end(&mut buffer)?;
         drop(file);
 
-        let texture = ::image::load_from_memory(&buffer).unwrap();
-        let texture_buffer = super::load_texture(factory, &texture);
+        let texture = ::image::load_from_memory(&buffer)?;
+        let texture_buffer = super::load_texture(factory, &texture)?;
         let vertex_buffer = factory.create_vertex_buffer(&vertex_data);
 
-        Cube {
+        Ok(Cube {
             model: super::ObjectData::new(
                 pipeline,
                 factory,
@@ -85,7 +85,7 @@ impl Cube {
             position: Vector3::zero(),
             velocity: Vector3::zero(),
             time_offset: 0.0,
-        }
+        })
     }
 
     pub fn update(&mut self) {

@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
 
 #[derive(Clone)]
-pub struct Mario {
+pub struct Object {
     groups: Vec<super::ObjectData>,
     start_time: std::time::SystemTime,
     position: Vector3<f32>,
@@ -18,23 +18,34 @@ pub struct Mario {
     time_offset: f32,
 }
 
-impl Mario {
-    pub fn new(
+impl Object {
+    pub fn load(
+        url: &str,
         pipeline: Arc<Mutex<crate::pipeline::ObjectPipeline>>,
         factory: &mut gfx_device_gl::Factory,
-    ) -> Mario {
+    ) -> Result<Object, Box<dyn std::error::Error>> {
         use std::io::BufReader;
 
-        let target = "https://www.models-resource.com/download/685/";
-        let model_file = BufReader::new(super::download_cached(target).unwrap());
-        let mut zip_archive = ZipArchive::new(model_file).unwrap();
+        let mut zip_archive = {
+            let model_file = BufReader::new(super::download_cached(url)?);
+            ZipArchive::new(model_file)?
+        };
 
-        let mut obj = Obj::<SimplePolygon>::load_buf(&mut BufReader::new(
-            zip_archive.by_name("mariohead.obj").unwrap(),
-        ))
-        .unwrap();
+        let mut obj = {
+            let obj_file_name = (0..zip_archive.len())
+                .into_iter()
+                .filter_map(|i| match zip_archive.by_index(i) {
+                    Ok(f) => Some(f.name().to_owned()),
+                    _ => None,
+                })
+                .filter(|f| f.ends_with(".obj"))
+                .next()
+                .ok_or("Missing .obj file in archive")?;
+            let obj_file = zip_archive.by_name(&obj_file_name)?;
+            Obj::<SimplePolygon>::load_buf(&mut BufReader::new(obj_file))?
+        };
 
-        let textures = load_materials(&mut obj, &mut zip_archive, factory);
+        let textures = load_materials(&mut obj, &mut zip_archive, factory)?;
 
         let vertices: Vec<_> = obj
             .position
@@ -50,31 +61,31 @@ impl Mario {
         let groups: Vec<_> = obj.objects[0]
             .groups
             .iter()
-            .map(|g| {
+            .filter_map(|g| {
                 let indices: Vec<u16> = g
                     .polys
                     .iter()
                     .flat_map(|p| p.iter().map(|t| t.0 as u16))
                     .collect();
-                let tex_name = g.material.as_ref().unwrap().map_kd.as_ref().unwrap();
-                super::ObjectData::new(
+                let tex_name = g.material.as_ref()?.map_kd.as_ref()?;
+                Some(super::ObjectData::new(
                     pipeline.clone(),
                     factory,
                     vbuf.clone(),
                     &indices,
                     textures[tex_name].clone(),
-                )
+                ))
             })
             .collect();
         drop(textures);
 
-        Mario {
+        Ok(Object {
             groups,
             start_time: std::time::SystemTime::now(),
             position: Vector3::zero(),
             velocity: Vector3::zero(),
             time_offset: 0.0,
-        }
+        })
     }
 
     pub fn update(&mut self) {
@@ -100,14 +111,17 @@ fn load_materials<R: BufRead + Seek>(
     obj: &mut Obj<SimplePolygon>,
     zip: &mut ZipArchive<R>,
     factory: &mut gfx_device_gl::Factory,
-) -> HashMap<String, gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>> {
+) -> Result<
+    HashMap<String, gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>>,
+    Box<dyn std::error::Error>,
+> {
     use std::borrow::Cow;
     use std::io::BufReader;
 
     let mut materials = HashMap::new();
 
     for m in &obj.material_libs {
-        let file = zip.by_name(m).unwrap();
+        let file = zip.by_name(m)?;
         let mtl = Mtl::load(&mut BufReader::new(file));
         for m in mtl.materials {
             materials.insert(m.name.clone(), Cow::from(m));
@@ -135,13 +149,22 @@ fn load_materials<R: BufRead + Seek>(
         );
     }
 
-    tex_files
+    let textures = tex_files
         .into_iter()
         .map(|fname| {
-            let texture = texture_from_zip(&fname, zip, factory).unwrap();
-            (fname.to_owned(), texture)
+            let texture = texture_from_zip(&fname, zip, factory)?;
+            Ok((fname.to_owned(), texture))
         })
-        .collect::<HashMap<_, _>>()
+        .try_fold(
+            HashMap::new(),
+            |mut acc, t: std::result::Result<_, Box<dyn std::error::Error>>| {
+                let (k, v) = t?;
+                acc.insert(k, v);
+                Ok(acc)
+            },
+        );
+
+    textures
 }
 
 fn texture_from_zip<B: BufRead + Seek>(
@@ -155,12 +178,12 @@ fn texture_from_zip<B: BufRead + Seek>(
     let mut buffer = vec![];
     zip.by_name(fname)?.read_to_end(&mut buffer)?;
     let image = ::image::load_from_memory(&buffer)?;
-    let tbuf = super::load_texture(factory, &image);
+    let tbuf = super::load_texture(factory, &image)?;
 
     Ok(tbuf)
 }
 
-impl super::Drawable for Mario {
+impl super::Drawable for Object {
     fn draw(&self, window: &mut PistonWindow) {
         self.groups.iter().foreach(|m, _| m.draw(window));
     }

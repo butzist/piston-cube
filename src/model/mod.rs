@@ -10,8 +10,8 @@ use std::sync::{Arc, Mutex};
 mod cube;
 pub type Cube = cube::Cube;
 
-mod mario;
-pub type Mario = mario::Mario;
+mod obj;
+pub type Object = obj::Object;
 
 mod scene;
 pub type Scene = scene::Scene;
@@ -66,21 +66,22 @@ pub fn download_cached(url: &str) -> Result<File, Box<dyn std::error::Error>> {
 pub fn load_texture(
     factory: &mut gfx_device_gl::Factory,
     texture: &::image::DynamicImage,
-) -> gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]> {
+) -> Result<
+    gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>,
+    gfx::CombinedError,
+> {
     let rgba = texture.to_rgba();
     let image_dimensions = rgba.dimensions();
-    let (_, texture) = factory
-        .create_texture_immutable_u8::<gfx::format::Rgba8>(
-            gfx::texture::Kind::D2(
-                image_dimensions.0 as u16,
-                image_dimensions.1 as u16,
-                gfx::texture::AaMode::Single,
-            ),
-            gfx::texture::Mipmap::Provided,
-            &[&rgba],
-        )
-        .unwrap();
-    texture
+    let (_, texture) = factory.create_texture_immutable_u8::<gfx::format::Rgba8>(
+        gfx::texture::Kind::D2(
+            image_dimensions.0 as u16,
+            image_dimensions.1 as u16,
+            gfx::texture::AaMode::Single,
+        ),
+        gfx::texture::Mipmap::Provided,
+        &[&rgba],
+    )?;
+    Ok(texture)
 }
 
 pub fn load_indices<B: gfx::IntoIndexBuffer<gfx_device_gl::Resources>>(

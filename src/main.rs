@@ -31,7 +31,12 @@ fn main() {
     let mut first_person = FirstPerson::new([0.0, 0.0, -1.0], FirstPersonSettings::keyboard_wasd());
     let pipeline = Arc::new(Mutex::new(ObjectPipeline::new(&window, opengl)));
     let mut scene = model::Scene::new(pipeline.clone(), factory);
-    let mut mario = model::Mario::new(pipeline.clone(), factory);
+    let mut mario = model::Object::load(
+        "https://www.models-resource.com/download/685/",
+        pipeline.clone(),
+        factory,
+    )
+    .unwrap();
 
     while let Some(e) = window.next() {
         first_person.event(&e);

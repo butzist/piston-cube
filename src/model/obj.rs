@@ -27,11 +27,15 @@ impl Object {
         use std::io::BufReader;
 
         let mut zip_archive = {
-            let model_file = BufReader::new(super::download_cached(url)?);
-            ZipArchive::new(model_file)?
+            let model_file = BufReader::new(
+                super::download_cached(url)
+                    .map_err(move |e| format!("Failed downloading archive: {}", e))?,
+            );
+            ZipArchive::new(model_file)
+                .map_err(move |e| format!("Failed opening archive: {}", e))?
         };
 
-        let mut obj = {
+        let (mut obj, folder) = {
             let obj_file_name = (0..zip_archive.len())
                 .into_iter()
                 .filter_map(|i| match zip_archive.by_index(i) {
@@ -41,11 +45,25 @@ impl Object {
                 .filter(|f| f.ends_with(".obj"))
                 .next()
                 .ok_or("Missing .obj file in archive")?;
-            let obj_file = zip_archive.by_name(&obj_file_name)?;
-            Obj::<SimplePolygon>::load_buf(&mut BufReader::new(obj_file))?
+            let folder = match std::path::Path::new(&obj_file_name).parent() {
+                Some(p) => p.to_str().unwrap_or_default().to_owned() + "/",
+                None => "".to_owned(),
+            };
+            let obj_file = zip_archive.by_name(&obj_file_name).map_err(move |e| {
+                format!(
+                    "Failed opening file \"{}\" in archive: {}",
+                    obj_file_name, e
+                )
+            })?;
+            (
+                Obj::<SimplePolygon>::load_buf(&mut BufReader::new(obj_file))
+                    .map_err(move |e| format!("Failed loading mesh: {}", e))?,
+                folder,
+            )
         };
 
-        let textures = load_materials(&mut obj, &mut zip_archive, factory)?;
+        let textures = load_materials(&mut obj, &mut zip_archive, folder, factory)
+            .map_err(move |e| format!("Failed loading materials: {}", e))?;
 
         let vertices: Vec<_> = obj
             .position
@@ -110,6 +128,7 @@ impl Object {
 fn load_materials<R: BufRead + Seek>(
     obj: &mut Obj<SimplePolygon>,
     zip: &mut ZipArchive<R>,
+    directory: String,
     factory: &mut gfx_device_gl::Factory,
 ) -> Result<
     HashMap<String, gfx_core::handle::ShaderResourceView<gfx_device_gl::Resources, [f32; 4]>>,
@@ -121,7 +140,9 @@ fn load_materials<R: BufRead + Seek>(
     let mut materials = HashMap::new();
 
     for m in &obj.material_libs {
-        let file = zip.by_name(m)?;
+        let file = zip
+            .by_name(&(directory.clone() + m))
+            .map_err(move |e| format!("Material library \"{}\" not found: {}", m, e))?;
         let mtl = Mtl::load(&mut BufReader::new(file));
         for m in mtl.materials {
             materials.insert(m.name.clone(), Cow::from(m));
@@ -152,7 +173,8 @@ fn load_materials<R: BufRead + Seek>(
     let textures = tex_files
         .into_iter()
         .map(|fname| {
-            let texture = texture_from_zip(&fname, zip, factory)?;
+            let texture = texture_from_zip(&(directory.clone() + fname), zip, factory)
+                .map_err(move |e| format!("Error loading texture {}: {}", fname, e))?;
             Ok((fname.to_owned(), texture))
         })
         .try_fold(
